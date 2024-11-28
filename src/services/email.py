@@ -41,7 +41,7 @@ class EmailService:
         template_body: Optional[Dict] = None
     ) -> bool:
         """
-        Send an email with advanced error handling and Jinja2 template rendering.
+        Send an email with Jinja2.
         """
         try:
             # Render the template
@@ -85,18 +85,17 @@ class EmailService:
         """
         Send email verification link
         """
-        verification_link = f"https://yourapp.com/verify-email?token={verification_token}"
+        verification_link = f"https://localhost:8000/api/auth/verify-email?token={verification_token}"
         
         return await self.send_email(
             recipient=email,
             username=username,
             subject="Verify Your Email",
-            template_name="verification_email_template.html",
+            template_name="email_template.html",
             template_body={
                 "username": username,
                 "verification_link": verification_link
             }
         )
 
-# Singleton instance
 email_service = EmailService()

@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 async def get_user_by_email(email: str, db: AsyncSession) -> User | None:
     """
-    Retrieve a user by their email address with robust error handling.
+    Retrieve a user by their email address.
     """
     try:
         result = await db.execute(select(User).filter(User.email == email))
@@ -23,7 +23,7 @@ async def get_user_by_email(email: str, db: AsyncSession) -> User | None:
 
 async def create_user(user: UserCreate, db: AsyncSession) -> User:
     """
-    Create a new user with enhanced error handling and validation.
+    Create a new user with.
     """
     try:
         # Check if user already exists
@@ -38,7 +38,7 @@ async def create_user(user: UserCreate, db: AsyncSession) -> User:
             email=user.email,
             username=user.username,
             password=hashed_password,
-            confirmed=False  # User needs to confirm email
+            confirmed=False 
         )
 
         db.add(new_user)

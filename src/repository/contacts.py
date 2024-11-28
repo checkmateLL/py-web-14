@@ -17,7 +17,7 @@ async def create_contact(
     db: AsyncSession
 ) -> Contact:
     """
-    Create a new contact with comprehensive error handling.
+    Create a new contact with error handling.
     """
     try:
         new_contact = Contact(
@@ -52,7 +52,7 @@ async def get_contacts(
     upcoming_birthdays: bool = False
 ) -> list[Contact]:
     """
-    Retrieve contacts with advanced filtering options.
+    Retrieve contact.
     """
     try:
         query = select(Contact).filter(Contact.owner_id == current_user.id)
@@ -89,6 +89,3 @@ async def get_contacts(
     except Exception as e:
         logger.error(f"Error retrieving contacts: {e}")
         raise
-
-# Additional methods for update and delete remain similar to previous implementation
-# with added robust error handling and logging

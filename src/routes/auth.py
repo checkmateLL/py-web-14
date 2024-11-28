@@ -28,7 +28,7 @@ async def signup(
     # Create the new user
     new_user = await repository_users.create_user(body, db)
 
-    # Send welcome email in the background
+    # Send welcome email
     email_service.send_email(
     recipient=new_user.email, 
     username=new_user.username
