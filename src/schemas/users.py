@@ -35,3 +35,7 @@ class UserUpdate(BaseModel):
     email: Optional[EmailStr] = None
     username: Optional[str] = None
     password: Optional[str] = None
+
+class LoginForm(BaseModel):
+    email: str
+    password: str
