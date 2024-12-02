@@ -91,7 +91,7 @@ class AuthService:
             
             # Check if token is revoked in Redis
             token_id = payload.get('jti')
-            if token_id and not await self.redis_client.exists(f"token:{token_id}"):
+            if token_id and not await self.redis_client.get(f"token:{token_id}"):
                 return None
             
             return payload

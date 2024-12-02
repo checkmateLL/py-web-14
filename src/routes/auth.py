@@ -29,7 +29,7 @@ async def signup(
     new_user = await repository_users.create_user(body, db)
 
     # Send welcome email
-    email_service.send_email(
+    await email_service.send_email(
     recipient=new_user.email, 
     username=new_user.username
 )
@@ -88,3 +88,43 @@ async def refresh_tokens(
     new_refresh_token = await auth_service.create_refresh_token(data={"sub": email})
     await repository_users.update_token(user, new_refresh_token, db)
     return {"access_token": access_token, "refresh_token": new_refresh_token, "token_type": "bearer"}
+
+@router.post("/reset-password")
+async def reset_password(
+    token: str, 
+    new_password: str, 
+    db: AsyncSession = Depends(get_db)
+):
+    try:
+        # Verify the reset token
+        email = await auth_service.get_email_from_token(token)
+        
+        if not email:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, 
+                detail="Invalid or expired reset token"
+            )
+        
+        # Update user's password
+        user = await repository_users.get_user_by_email(email, db)
+        
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, 
+                detail="User not found"
+            )
+        
+        # Hash and update password
+        hashed_password = auth_service.get_password_hash(new_password)
+        user.password = hashed_password
+        
+        await db.commit()
+        
+        return {"message": "Password successfully reset"}
+    
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, 
+            detail="Password reset failed"
+        )

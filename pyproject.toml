@@ -18,10 +18,11 @@ cloudinary = "^1.41.0"
 pydantic-settings = "^2.6.1"
 redis = {extras = ["asyncio"], version = "^5.2.0"}
 fastapi-mail = "^1.4.2"
-passlib = "^1.7.4"
 python-jose = "^3.3.0"
-bcrypt = "^4.2.1"
 python-multipart = "^0.0.17"
+slowapi = "^0.1.9"
+bcrypt = "4.0.1"
+passlib = "1.7.4"
 
 
 [build-system]

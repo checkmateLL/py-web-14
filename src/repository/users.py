@@ -143,3 +143,15 @@ async def request_password_reset(email: str, db: AsyncSession) -> str | None:
     except Exception as e:
         logger.error(f"Error in password reset request for {email}: {e}")
         return None
+
+async def update_token(user: User, token: str, db: AsyncSession) -> None:
+    """
+    Updates the refresh token of a user in the database.
+    """
+    try:
+        user.refresh_token = token
+        await db.commit()
+        await db.refresh(user)
+    except Exception as e:
+        await db.rollback()
+        raise ValueError(f"Failed to update refresh token: {e}")
