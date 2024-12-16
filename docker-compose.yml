@@ -1,3 +1,7 @@
+networks:
+  py-web-network:
+    driver: bridge
+    
 services:
   postgres:
     image: postgres:12

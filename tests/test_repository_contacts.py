@@ -6,8 +6,11 @@ from src.database.models import User
 
 class TestRepositoryContacts(unittest.IsolatedAsyncioTestCase):
     async def test_create_contact(self):
-        # Test data
+        # Mock data
         db_mock = AsyncMock()
+        db_mock.add.return_value = None  # Mock db.add()
+        db_mock.commit.return_value = None  # Mock db.commit()
+        
         user = User(id=1, email="user@example.com")
         contact_data = ContactCreate(
             first_name="John",
@@ -24,8 +27,8 @@ class TestRepositoryContacts(unittest.IsolatedAsyncioTestCase):
         # Assertions
         self.assertEqual(result.first_name, "John")
         self.assertEqual(result.email, "johndoe@example.com")
-        db_mock.add.assert_called_once()
-        db_mock.commit.assert_called_once()
+        db_mock.add.assert_called_once_with(result)  # Ensure db.add() was called with the correct object
+        db_mock.commit.assert_called_once()  # Ensure db.commit() was called
 
 if __name__ == "__main__":
     unittest.main()

@@ -7,7 +7,7 @@ from src.services.rate_limiter import add_rate_limiting
 logging.basicConfig(level=logging.DEBUG)
 
 
-app = FastAPI(debug=True)
+app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
@@ -21,3 +21,7 @@ add_rate_limiting(app)
 
 app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
 app.include_router(contacts.router, prefix="/api/contacts", tags=["contacts"])
+
+@app.get("/")
+async def root():
+    return {"message": "Welcome to the API"}

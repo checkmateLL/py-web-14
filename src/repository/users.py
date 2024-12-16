@@ -61,7 +61,6 @@ async def create_user(user: UserCreate, db: AsyncSession) -> User:
         db.add(new_user)
         await db.commit()
         await db.refresh(new_user)
-
         return new_user
     except IntegrityError:
         await db.rollback()

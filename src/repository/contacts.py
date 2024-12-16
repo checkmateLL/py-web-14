@@ -38,7 +38,7 @@ async def create_contact(
             owner_id=current_user.id
         )
 
-        db.add(new_contact)
+        await db.add(new_contact)
         await db.commit()
         await db.refresh(new_contact)
         return new_contact
