@@ -23,7 +23,7 @@ class TestRepositoryUsers(unittest.IsolatedAsyncioTestCase):
         # Create a mock user
         existing_user = User(id=1, email=self.user_data.email, username="testuser")
 
-        # Create a mock result that mimics SQLAlchemy's async query result
+        # Create a mock result
         mock_result = AsyncMock(spec=AsyncResult)
         mock_result.scalars.return_value.first.return_value = existing_user
         

@@ -53,7 +53,7 @@ async def login(
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid email or password")
     
     is_password_valid = auth_service.verify_password(form_data.password, user.password)
-    logger.debug(f"Password valid: {is_password_valid}")  # Debug log for password validity
+    logger.debug(f"Password valid: {is_password_valid}")  # Debuged because of previous errors
 
     if not is_password_valid:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid email or password")

@@ -45,7 +45,7 @@ async def create_user(user: UserCreate, db: AsyncSession, AuthService=None) -> U
         ValueError: If a user with the email already exists.
     """
     if AuthService is None:
-        from src.services.auth import get_auth_service  # Import here to avoid circular dependency
+        from src.services.auth import get_auth_service  # changed import here
         AuthService = get_auth_service()
 
     try:
@@ -117,7 +117,7 @@ async def update_user(
         ValueError: If the update fails due to an error.
     """
     if AuthService is None:
-        from src.services.auth import get_auth_service  # Import here to avoid circular dependency
+        from src.services.auth import get_auth_service 
         AuthService = get_auth_service()
 
     try:
@@ -177,7 +177,7 @@ async def request_password_reset(email: str, db: AsyncSession, AuthService = Non
         str | None: The generated reset token if successful, otherwise None.
     """
     if AuthService is None:
-        from src.services.auth import get_auth_service  # Import here to avoid circular dependency
+        from src.services.auth import get_auth_service
         AuthService = get_auth_service()
 
     try:

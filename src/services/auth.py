@@ -98,11 +98,6 @@ class AuthService:
         return user
 
 
-# # Provide an instance of AuthService for dependency injection
-# auth_service_instance = AuthService()
-
-# def get_auth_service():
-#     return auth_service_instance
 
 # Wrapper for get_current_user to expose it for other modules
 async def get_current_user(

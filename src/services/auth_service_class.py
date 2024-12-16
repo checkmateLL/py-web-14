@@ -24,13 +24,13 @@ class AuthService:
 
     async def create_refresh_token(self, data: dict) -> str:
         to_encode = data.copy()
-        expire = datetime.utcnow() + timedelta(days=7)  # Refresh token typically lasts longer
+        expire = datetime.utcnow() + timedelta(days=7) 
         to_encode.update({"exp": expire})
         return jwt.encode(to_encode, self.secret_key, algorithm=self.algorithm)
     
     async def create_email_verification_token(self, email: str) -> str:
         to_encode = {"sub": email}
-        expire = datetime.utcnow() + timedelta(hours=1)  # Token expires in 1 hour
+        expire = datetime.utcnow() + timedelta(hours=1) 
         to_encode.update({"exp": expire})
         return jwt.encode(to_encode, self.secret_key, algorithm=self.algorithm)
 

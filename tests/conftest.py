@@ -13,7 +13,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-# Use a try-except block to handle potential import issues
+# try-except block to handle potential import issues
 try:
     
     from src.database.models import Base

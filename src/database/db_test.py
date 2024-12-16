@@ -1,8 +1,8 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from src.database.models import Base  # Your application's SQLAlchemy models
+from src.database.models import Base 
 
-DATABASE_URL = "sqlite:///./test.db"  # Persistent SQLite database for testing
+DATABASE_URL = "sqlite:///./test.db"  # Local database for tests
 
 engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
