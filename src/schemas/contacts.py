@@ -36,4 +36,4 @@ class ContactResponse(ContactBase):
     id: int
 
     class Config:
-        from_attributes = True
+        config = ConfigDict(orm_mode=True)

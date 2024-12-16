@@ -1,8 +1,11 @@
 import logging
+import sys
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi import FastAPI
 from src.routes import auth, contacts
 from src.services.rate_limiter import add_rate_limiting
+
+sys.path.append("./src")
 
 logging.basicConfig(level=logging.DEBUG)
 

@@ -4,7 +4,7 @@ from fastapi.security import OAuth2PasswordRequestForm
 from src.schemas.users import UserCreate, UserResponse, TokenResponse, RequestEmail, SignupResponse
 from src.repository import users as repository_users
 from src.database.db import get_db
-from src.services.auth import auth_service
+from src.services.auth import get_auth_service, get_current_user
 from src.services.email import email_service
 from src.database.models import User
 from src.schemas.users import LoginForm
@@ -15,12 +15,15 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
+auth_service = get_auth_service()
+
 @router.post("/signup", response_model=SignupResponse, status_code=status.HTTP_201_CREATED)
 async def signup(
     body: UserCreate,
     background_tasks: BackgroundTasks,
     request: Request,
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_db)
+    
 ):
     # Check if the user already exists
     exist_user = await repository_users.get_user_by_email(body.email, db)

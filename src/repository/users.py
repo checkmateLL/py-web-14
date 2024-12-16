@@ -2,13 +2,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.exc import NoResultFound, IntegrityError
 import logging
-
+from fastapi import Depends
 from src.database.models import User
 from src.schemas.users import UserCreate, UserUpdate
-from src.services.auth import auth_service
+from src.services.auth import _get_auth_service
+from src.services.auth import AuthService
 from src.services.email import email_service
 
 logger = logging.getLogger(__name__)
+auth_service = _get_auth_service()
 
 async def get_user_by_email(email: str, db: AsyncSession) -> User | None:
     """
@@ -28,7 +30,7 @@ async def get_user_by_email(email: str, db: AsyncSession) -> User | None:
         logger.error(f"Error retrieving user by email {email}: {e}")
         return None
 
-async def create_user(user: UserCreate, db: AsyncSession) -> User:
+async def create_user(user: UserCreate, db: AsyncSession, AuthService=Depends(_get_auth_service)) -> User:
     """
     Create a new user.
 
@@ -49,19 +51,21 @@ async def create_user(user: UserCreate, db: AsyncSession) -> User:
             raise ValueError("User with this email already exists")
 
         # Hash the password
-        hashed_password = auth_service.get_password_hash(user.password)
+        hashed_password = AuthService.get_password_hash(user.password)
 
         new_user = User(
             email=user.email,
             username=user.username,
             password=hashed_password,
-            confirmed=False 
+            confirmed=False,
         )
 
         db.add(new_user)
         await db.commit()
         await db.refresh(new_user)
+
         return new_user
+    
     except IntegrityError:
         await db.rollback()
         logger.error(f"Integrity error creating user: {user.email}")
@@ -74,24 +78,30 @@ async def create_user(user: UserCreate, db: AsyncSession) -> User:
 async def get_user_by_id(user_id: int, db: AsyncSession) -> User | None:
     """
     Retrieve a user by their ID.
+
+    Args:
+        user_id (int): The ID of the user.
+        db (AsyncSession): The database session for querying.
+
+    Returns:
+        User | None: The user object if found, otherwise None.
     """
     try:
         result = await db.execute(select(User).filter(User.id == user_id))
-        user = result.scalars().one()
-        return user
-    except NoResultFound:
+        return result.scalars().first()
+    except Exception as e:
+        logger.error(f"Error retrieving user by ID {user_id}: {e}")
         return None
 
 
 async def update_user(
-    user_id: int, 
-    user_update: UserUpdate, 
-    db: AsyncSession
+    user_id: int, user_update: UserUpdate, db: AsyncSession,
+    AuthService = Depends(_get_auth_service)
 ) -> User | None:
     """
     Update user details.
 
-     Args:
+    Args:
         user_id (int): The ID of the user to update.
         user_update (UserUpdate): The fields to update.
         db (AsyncSession): The database session for querying.
@@ -109,9 +119,8 @@ async def update_user(
 
         # Update only provided fields
         update_data = user_update.model_dump(exclude_unset=True)
-        
         for key, value in update_data.items():
-            if key == 'password':
+            if key == "password":
                 # Hash new password if provided
                 value = auth_service.get_password_hash(value)
             setattr(user, key, value)
@@ -148,9 +157,16 @@ async def confirm_email(email: str, db: AsyncSession) -> bool:
         logger.error(f"Error confirming email for {email}: {e}")
         return False
 
-async def request_password_reset(email: str, db: AsyncSession) -> str | None:
+async def request_password_reset(email: str, db: AsyncSession, AuthService = Depends(_get_auth_service)) -> str | None:
     """
     Generate a password reset token and optionally send reset email.
+
+    Args:
+        email (str): The email address of the user requesting a password reset.
+        db (AsyncSession): The database session for querying.
+
+    Returns:
+        str | None: The generated reset token if successful, otherwise None.
     """
     try:
         user = await get_user_by_email(email, db)
@@ -159,18 +175,18 @@ async def request_password_reset(email: str, db: AsyncSession) -> str | None:
 
         # Generate a password reset token
         reset_token = await auth_service.create_email_verification_token(email)
-        
+
         # Send password reset email
         reset_link = f"https://yourapp.com/reset-password?token={reset_token}"
         await email_service.send_email(
-            email, 
-            user.username, 
+            email,
+            user.username,
             subject="Password Reset Request",
             template_name="password_reset_template.html",
             template_body={
                 "username": user.username,
-                "reset_link": reset_link
-            }
+                "reset_link": reset_link,
+            },
         )
 
         return reset_token

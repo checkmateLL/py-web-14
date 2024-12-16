@@ -10,5 +10,12 @@ Base = declarative_base()
 SessionLocal = sessionmaker(bind=engine, class_=AsyncSession, expire_on_commit=False)
 
 async def get_db():
+    """
+    Dependency that creates a new database session for each request
+    and closes it after the request is completed.
+    """
     async with SessionLocal() as session:
-        yield session
+        try:
+            yield session
+        finally:
+            await session.close()
