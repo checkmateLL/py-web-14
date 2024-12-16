@@ -30,8 +30,8 @@ async def signup(
     if exist_user:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Account already exists")
 
-    # Hash the password
-    body.password = auth_service.get_password_hash(body.password)
+    # Hash the password - removed because of double hashing
+    #body.password = auth_service.get_password_hash(body.password)
 
     # Create the new user
     new_user = await repository_users.create_user(body, db)

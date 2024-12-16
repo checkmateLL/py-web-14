@@ -1,5 +1,8 @@
 import os
 import sys
+from main import app
+from src.services.auth_service_class import get_auth_service
+
 
 # Add project root to Python path
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
@@ -12,7 +15,7 @@ from sqlalchemy.orm import sessionmaker
 
 # Use a try-except block to handle potential import issues
 try:
-    from main import app
+    
     from src.database.models import Base
     from src.database.db import get_db
 except ImportError as e:
@@ -42,18 +45,19 @@ def session():
         db.close()
 
 @pytest.fixture(scope="function")
-def client(session):
-    """
-    Creates a test client that uses the override_get_db for each test.
-    """
-    def override_get_db():
-        try:
-            yield session
-        finally:
-            session.close()
+def mock_auth_service():
+    from src.services.auth_service_class import AuthService
+    return AuthService(
+        secret_key="1957ahyse3hb",
+        algorithm="HS256",
+        access_token_expire_minutes=30,
+    )
 
-    app.dependency_overrides[get_db] = override_get_db
-    yield TestClient(app)
+@pytest.fixture(scope="function")
+def client(session, mock_auth_service):
+    app.dependency_overrides[get_auth_service] = lambda: mock_auth_service
+    with TestClient(app) as c:
+        yield c
     app.dependency_overrides.clear()
 
 @pytest.fixture
@@ -63,3 +67,9 @@ def user_data():
         "password": "securepassword",
         "username": "testuser"
     }
+
+@pytest.fixture(scope="function")
+def mock_email_service(monkeypatch):
+    def mock_send_email(*args, **kwargs):
+        return True
+    monkeypatch.setattr("src.services.email.send_email", mock_send_email)

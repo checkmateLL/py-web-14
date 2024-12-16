@@ -12,6 +12,8 @@ from src.conf.config import settings
 from src.repository import users as repository_users
 import uuid
 import redis.asyncio as redis
+from src.services.auth_service_class import AuthService, get_auth_service
+auth_service_instance = get_auth_service()
 
 # OAuth2 configuration
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/auth/login")
@@ -96,11 +98,11 @@ class AuthService:
         return user
 
 
-# Provide an instance of AuthService for dependency injection
-auth_service_instance = AuthService()
+# # Provide an instance of AuthService for dependency injection
+# auth_service_instance = AuthService()
 
-def get_auth_service() -> AuthService:
-    return auth_service_instance
+# def get_auth_service():
+#     return auth_service_instance
 
 # Wrapper for get_current_user to expose it for other modules
 async def get_current_user(

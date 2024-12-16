@@ -5,12 +5,12 @@ import logging
 from fastapi import Depends
 from src.database.models import User
 from src.schemas.users import UserCreate, UserUpdate
-from src.services.auth import _get_auth_service
-from src.services.auth import AuthService
+from src.services.auth_service_class import get_auth_service
+#from src.services.auth import AuthService
 from src.services.email import email_service
 
 logger = logging.getLogger(__name__)
-auth_service = _get_auth_service()
+#auth_service = get_auth_service()
 
 async def get_user_by_email(email: str, db: AsyncSession) -> User | None:
     """
@@ -30,7 +30,7 @@ async def get_user_by_email(email: str, db: AsyncSession) -> User | None:
         logger.error(f"Error retrieving user by email {email}: {e}")
         return None
 
-async def create_user(user: UserCreate, db: AsyncSession, AuthService=Depends(_get_auth_service)) -> User:
+async def create_user(user: UserCreate, db: AsyncSession, AuthService=None) -> User:
     """
     Create a new user.
 
@@ -44,6 +44,10 @@ async def create_user(user: UserCreate, db: AsyncSession, AuthService=Depends(_g
     Raises:
         ValueError: If a user with the email already exists.
     """
+    if AuthService is None:
+        from src.services.auth import get_auth_service  # Import here to avoid circular dependency
+        AuthService = get_auth_service()
+
     try:
         # Check if user already exists
         existing_user = await get_user_by_email(user.email, db)
@@ -96,7 +100,7 @@ async def get_user_by_id(user_id: int, db: AsyncSession) -> User | None:
 
 async def update_user(
     user_id: int, user_update: UserUpdate, db: AsyncSession,
-    AuthService = Depends(_get_auth_service)
+    AuthService = None
 ) -> User | None:
     """
     Update user details.
@@ -112,6 +116,10 @@ async def update_user(
     Raises:
         ValueError: If the update fails due to an error.
     """
+    if AuthService is None:
+        from src.services.auth import get_auth_service  # Import here to avoid circular dependency
+        AuthService = get_auth_service()
+
     try:
         user = await get_user_by_id(user_id, db)
         if not user:
@@ -122,7 +130,7 @@ async def update_user(
         for key, value in update_data.items():
             if key == "password":
                 # Hash new password if provided
-                value = auth_service.get_password_hash(value)
+                value = AuthService.get_password_hash(value)
             setattr(user, key, value)
 
         await db.commit()
@@ -157,7 +165,7 @@ async def confirm_email(email: str, db: AsyncSession) -> bool:
         logger.error(f"Error confirming email for {email}: {e}")
         return False
 
-async def request_password_reset(email: str, db: AsyncSession, AuthService = Depends(_get_auth_service)) -> str | None:
+async def request_password_reset(email: str, db: AsyncSession, AuthService = None) -> str | None:
     """
     Generate a password reset token and optionally send reset email.
 
@@ -168,13 +176,17 @@ async def request_password_reset(email: str, db: AsyncSession, AuthService = Dep
     Returns:
         str | None: The generated reset token if successful, otherwise None.
     """
+    if AuthService is None:
+        from src.services.auth import get_auth_service  # Import here to avoid circular dependency
+        AuthService = get_auth_service()
+
     try:
         user = await get_user_by_email(email, db)
         if not user:
             return None
 
         # Generate a password reset token
-        reset_token = await auth_service.create_email_verification_token(email)
+        reset_token = await AuthService.create_email_verification_token(email)
 
         # Send password reset email
         reset_link = f"https://yourapp.com/reset-password?token={reset_token}"
