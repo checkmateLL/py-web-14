@@ -66,13 +66,6 @@ REST API Services Email
    :undoc-members:
    :show-inheritance:
 
-src module
-==========
-
-.. automodule:: src
-   :members:
-   :undoc-members:
-   :show-inheritance:
 
 Indices and tables
 ==================

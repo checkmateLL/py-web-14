@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>src.routes.contacts &#8212; py-web-14 1.0 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=a746c00c" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/nature.css?v=279e0f84" />
+    <script src="../../../_static/documentation_options.js?v=f2a433a1"></script>
+    <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">py-web-14 1.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" accesskey="U">Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">src.routes.contacts</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for src.routes.contacts</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">fastapi</span> <span class="kn">import</span> <span class="n">APIRouter</span><span class="p">,</span> <span class="n">HTTPException</span><span class="p">,</span> <span class="n">status</span><span class="p">,</span> <span class="n">Depends</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy.ext.asyncio</span> <span class="kn">import</span> <span class="n">AsyncSession</span>
+<span class="kn">from</span> <span class="nn">src.schemas.contacts</span> <span class="kn">import</span> <span class="n">ContactCreate</span><span class="p">,</span> <span class="n">ContactUpdate</span><span class="p">,</span> <span class="n">ContactResponse</span>
+<span class="kn">from</span> <span class="nn">src.repository</span> <span class="kn">import</span> <span class="n">contacts</span> <span class="k">as</span> <span class="n">repository_contacts</span>
+<span class="kn">from</span> <span class="nn">src.database.db</span> <span class="kn">import</span> <span class="n">get_db</span>
+<span class="kn">from</span> <span class="nn">src.services.auth</span> <span class="kn">import</span> <span class="n">get_current_user</span>
+<span class="kn">from</span> <span class="nn">src.database.models</span> <span class="kn">import</span> <span class="n">User</span>
+
+<span class="n">router</span> <span class="o">=</span> <span class="n">APIRouter</span><span class="p">()</span>
+
+<div class="viewcode-block" id="create_contact">
+<a class="viewcode-back" href="../../../index.html#src.routes.contacts.create_contact">[docs]</a>
+<span class="nd">@router</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">,</span> <span class="n">response_model</span><span class="o">=</span><span class="n">ContactResponse</span><span class="p">,</span> <span class="n">status_code</span><span class="o">=</span><span class="n">status</span><span class="o">.</span><span class="n">HTTP_201_CREATED</span><span class="p">)</span>
+<span class="k">async</span> <span class="k">def</span> <span class="nf">create_contact</span><span class="p">(</span>
+    <span class="n">body</span><span class="p">:</span> <span class="n">ContactCreate</span><span class="p">,</span> <span class="n">db</span><span class="p">:</span> <span class="n">AsyncSession</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">get_db</span><span class="p">),</span> <span class="n">current_user</span><span class="p">:</span> <span class="n">User</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">get_current_user</span><span class="p">)</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Create a new contact.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        body (ContactCreate): The contact details.</span>
+<span class="sd">        db (AsyncSession): The database session.</span>
+<span class="sd">        current_user (User): The currently authenticated user.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        ContactResponse: The created contact details.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">new_contact</span> <span class="o">=</span> <span class="k">await</span> <span class="n">repository_contacts</span><span class="o">.</span><span class="n">create_contact</span><span class="p">(</span><span class="n">body</span><span class="p">,</span> <span class="n">current_user</span><span class="p">,</span> <span class="n">db</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">new_contact</span></div>
+
+
+<div class="viewcode-block" id="get_contacts">
+<a class="viewcode-back" href="../../../index.html#src.routes.contacts.get_contacts">[docs]</a>
+<span class="nd">@router</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">,</span> <span class="n">response_model</span><span class="o">=</span><span class="nb">list</span><span class="p">[</span><span class="n">ContactResponse</span><span class="p">])</span>
+<span class="k">async</span> <span class="k">def</span> <span class="nf">get_contacts</span><span class="p">(</span>
+    <span class="n">db</span><span class="p">:</span> <span class="n">AsyncSession</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">get_db</span><span class="p">),</span> <span class="n">current_user</span><span class="p">:</span> <span class="n">User</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">get_current_user</span><span class="p">)</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Retrieve all contacts for the authenticated user.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        db (AsyncSession): The database session.</span>
+<span class="sd">        current_user (User): The authenticated user.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        list[ContactResponse]: A list of contacts.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">contacts</span> <span class="o">=</span> <span class="k">await</span> <span class="n">repository_contacts</span><span class="o">.</span><span class="n">get_contacts</span><span class="p">(</span><span class="n">current_user</span><span class="p">,</span> <span class="n">db</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">contacts</span></div>
+
+
+<div class="viewcode-block" id="get_contact">
+<a class="viewcode-back" href="../../../index.html#src.routes.contacts.get_contact">[docs]</a>
+<span class="nd">@router</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;/</span><span class="si">{contact_id}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">response_model</span><span class="o">=</span><span class="n">ContactResponse</span><span class="p">)</span>
+<span class="k">async</span> <span class="k">def</span> <span class="nf">get_contact</span><span class="p">(</span>
+    <span class="n">contact_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">db</span><span class="p">:</span> <span class="n">AsyncSession</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">get_db</span><span class="p">),</span> <span class="n">current_user</span><span class="p">:</span> <span class="n">User</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">get_current_user</span><span class="p">)</span>
+<span class="p">):</span>
+    <span class="n">contact</span> <span class="o">=</span> <span class="k">await</span> <span class="n">repository_contacts</span><span class="o">.</span><span class="n">get_contact</span><span class="p">(</span><span class="n">contact_id</span><span class="p">,</span> <span class="n">current_user</span><span class="p">,</span> <span class="n">db</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">contact</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span><span class="n">status_code</span><span class="o">=</span><span class="n">status</span><span class="o">.</span><span class="n">HTTP_404_NOT_FOUND</span><span class="p">,</span> <span class="n">detail</span><span class="o">=</span><span class="s2">&quot;Contact not found&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">contact</span></div>
+
+
+<div class="viewcode-block" id="update_contact">
+<a class="viewcode-back" href="../../../index.html#src.routes.contacts.update_contact">[docs]</a>
+<span class="nd">@router</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="s2">&quot;/</span><span class="si">{contact_id}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">response_model</span><span class="o">=</span><span class="n">ContactResponse</span><span class="p">)</span>
+<span class="k">async</span> <span class="k">def</span> <span class="nf">update_contact</span><span class="p">(</span>
+    <span class="n">contact_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">body</span><span class="p">:</span> <span class="n">ContactUpdate</span><span class="p">,</span> <span class="n">db</span><span class="p">:</span> <span class="n">AsyncSession</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">get_db</span><span class="p">),</span> <span class="n">current_user</span><span class="p">:</span> <span class="n">User</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">get_current_user</span><span class="p">)</span>
+<span class="p">):</span>
+    <span class="n">updated_contact</span> <span class="o">=</span> <span class="k">await</span> <span class="n">repository_contacts</span><span class="o">.</span><span class="n">update_contact</span><span class="p">(</span><span class="n">contact_id</span><span class="p">,</span> <span class="n">body</span><span class="p">,</span> <span class="n">current_user</span><span class="p">,</span> <span class="n">db</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">updated_contact</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span><span class="n">status_code</span><span class="o">=</span><span class="n">status</span><span class="o">.</span><span class="n">HTTP_404_NOT_FOUND</span><span class="p">,</span> <span class="n">detail</span><span class="o">=</span><span class="s2">&quot;Contact not found&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">updated_contact</span></div>
+
+
+<div class="viewcode-block" id="delete_contact">
+<a class="viewcode-back" href="../../../index.html#src.routes.contacts.delete_contact">[docs]</a>
+<span class="nd">@router</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="s2">&quot;/</span><span class="si">{contact_id}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">status_code</span><span class="o">=</span><span class="n">status</span><span class="o">.</span><span class="n">HTTP_204_NO_CONTENT</span><span class="p">)</span>
+<span class="k">async</span> <span class="k">def</span> <span class="nf">delete_contact</span><span class="p">(</span>
+    <span class="n">contact_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">db</span><span class="p">:</span> <span class="n">AsyncSession</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">get_db</span><span class="p">),</span> <span class="n">current_user</span><span class="p">:</span> <span class="n">User</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">get_current_user</span><span class="p">)</span>
+<span class="p">):</span>
+    <span class="n">deleted</span> <span class="o">=</span> <span class="k">await</span> <span class="n">repository_contacts</span><span class="o">.</span><span class="n">delete_contact</span><span class="p">(</span><span class="n">contact_id</span><span class="p">,</span> <span class="n">current_user</span><span class="p">,</span> <span class="n">db</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">deleted</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span><span class="n">status_code</span><span class="o">=</span><span class="n">status</span><span class="o">.</span><span class="n">HTTP_404_NOT_FOUND</span><span class="p">,</span> <span class="n">detail</span><span class="o">=</span><span class="s2">&quot;Contact not found&quot;</span><span class="p">)</span></div>
+
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">py-web-14 1.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">src.routes.contacts</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2024, juliya.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.1.3.
+    </div>
+  </body>
+</html>

@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>src.services.email &#8212; py-web-14 1.0 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=a746c00c" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/nature.css?v=279e0f84" />
+    <script src="../../../_static/documentation_options.js?v=f2a433a1"></script>
+    <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">py-web-14 1.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" accesskey="U">Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">src.services.email</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for src.services.email</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span>
+<span class="kn">from</span> <span class="nn">fastapi_mail</span> <span class="kn">import</span> <span class="n">FastMail</span><span class="p">,</span> <span class="n">MessageSchema</span><span class="p">,</span> <span class="n">ConnectionConfig</span>
+<span class="kn">from</span> <span class="nn">fastapi</span> <span class="kn">import</span> <span class="n">HTTPException</span>
+<span class="kn">from</span> <span class="nn">pydantic</span> <span class="kn">import</span> <span class="n">EmailStr</span><span class="p">,</span> <span class="n">SecretStr</span>
+
+<span class="kn">from</span> <span class="nn">src.conf.config</span> <span class="kn">import</span> <span class="n">settings</span>
+<span class="kn">from</span> <span class="nn">jinja2</span> <span class="kn">import</span> <span class="n">Environment</span><span class="p">,</span> <span class="n">FileSystemLoader</span>
+<span class="kn">import</span> <span class="nn">aiosmtplib</span>
+<span class="kn">from</span> <span class="nn">email.mime.text</span> <span class="kn">import</span> <span class="n">MIMEText</span>
+<span class="kn">from</span> <span class="nn">email.mime.multipart</span> <span class="kn">import</span> <span class="n">MIMEMultipart</span>
+
+<div class="viewcode-block" id="EmailService">
+<a class="viewcode-back" href="../../../index.html#src.services.email.EmailService">[docs]</a>
+<span class="k">class</span> <span class="nc">EmailService</span><span class="p">:</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1">#extract secret values if they are SecretStr</span>
+        <span class="n">mail_username</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">settings</span><span class="o">.</span><span class="n">mail_username</span><span class="o">.</span><span class="n">get_secret_value</span><span class="p">()</span> 
+            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">settings</span><span class="o">.</span><span class="n">mail_username</span><span class="p">,</span> <span class="s1">&#39;get_secret_value&#39;</span><span class="p">)</span> 
+            <span class="k">else</span> <span class="n">settings</span><span class="o">.</span><span class="n">mail_username</span>
+        <span class="p">)</span>
+        <span class="n">mail_password</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">settings</span><span class="o">.</span><span class="n">mail_password</span><span class="o">.</span><span class="n">get_secret_value</span><span class="p">()</span> 
+            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">settings</span><span class="o">.</span><span class="n">mail_password</span><span class="p">,</span> <span class="s1">&#39;get_secret_value&#39;</span><span class="p">)</span> 
+            <span class="k">else</span> <span class="n">settings</span><span class="o">.</span><span class="n">mail_password</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">conf</span> <span class="o">=</span> <span class="n">ConnectionConfig</span><span class="p">(</span>
+            <span class="n">MAIL_USERNAME</span><span class="o">=</span><span class="n">mail_username</span><span class="p">,</span>
+            <span class="n">MAIL_PASSWORD</span><span class="o">=</span><span class="n">mail_password</span><span class="p">,</span>
+            <span class="n">MAIL_FROM</span><span class="o">=</span><span class="n">settings</span><span class="o">.</span><span class="n">mail_from</span><span class="p">,</span>
+            <span class="n">MAIL_PORT</span><span class="o">=</span><span class="n">settings</span><span class="o">.</span><span class="n">mail_port</span><span class="p">,</span>
+            <span class="n">MAIL_SERVER</span><span class="o">=</span><span class="n">settings</span><span class="o">.</span><span class="n">mail_server</span><span class="p">,</span>
+            <span class="n">MAIL_FROM_NAME</span><span class="o">=</span><span class="n">settings</span><span class="o">.</span><span class="n">mail_from_name</span><span class="p">,</span>
+            <span class="n">MAIL_STARTTLS</span><span class="o">=</span><span class="n">settings</span><span class="o">.</span><span class="n">mail_starttls</span><span class="p">,</span>
+            <span class="n">MAIL_SSL_TLS</span><span class="o">=</span><span class="n">settings</span><span class="o">.</span><span class="n">mail_ssl_tls</span><span class="p">,</span>
+            <span class="n">USE_CREDENTIALS</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">VALIDATE_CERTS</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">TEMPLATE_FOLDER</span><span class="o">=</span><span class="s2">&quot;src/services/templates&quot;</span>
+        <span class="p">)</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">jinja_env</span> <span class="o">=</span> <span class="n">Environment</span><span class="p">(</span>
+            <span class="n">loader</span><span class="o">=</span><span class="n">FileSystemLoader</span><span class="p">(</span><span class="s1">&#39;src/services/templates&#39;</span><span class="p">),</span>
+            <span class="n">autoescape</span><span class="o">=</span><span class="kc">True</span>
+        <span class="p">)</span>
+
+<div class="viewcode-block" id="EmailService.send_email">
+<a class="viewcode-back" href="../../../index.html#src.services.email.EmailService.send_email">[docs]</a>
+    <span class="k">async</span> <span class="k">def</span> <span class="nf">send_email</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> 
+        <span class="n">recipient</span><span class="p">:</span> <span class="n">EmailStr</span><span class="p">,</span> 
+        <span class="n">username</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> 
+        <span class="n">subject</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;Notification&quot;</span><span class="p">,</span>
+        <span class="n">template_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;email_template.html&quot;</span><span class="p">,</span>
+        <span class="n">template_body</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Send an email with Jinja2.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="c1"># Render the template</span>
+            <span class="n">template</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">jinja_env</span><span class="o">.</span><span class="n">get_template</span><span class="p">(</span><span class="n">template_name</span><span class="p">)</span>
+            <span class="n">body</span> <span class="o">=</span> <span class="n">template</span><span class="o">.</span><span class="n">render</span><span class="p">(</span><span class="o">**</span><span class="p">(</span><span class="n">template_body</span> <span class="ow">or</span> <span class="p">{</span><span class="s2">&quot;fullname&quot;</span><span class="p">:</span> <span class="n">username</span><span class="p">}))</span>
+
+            <span class="c1"># Create a multipart message</span>
+            <span class="n">message</span> <span class="o">=</span> <span class="n">MIMEMultipart</span><span class="p">()</span>
+            <span class="n">message</span><span class="p">[</span><span class="s1">&#39;From&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">conf</span><span class="o">.</span><span class="n">MAIL_FROM</span>
+            <span class="n">message</span><span class="p">[</span><span class="s1">&#39;To&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">recipient</span>
+            <span class="n">message</span><span class="p">[</span><span class="s1">&#39;Subject&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">subject</span>
+
+            <span class="c1"># Attach the HTML body</span>
+            <span class="n">message</span><span class="o">.</span><span class="n">attach</span><span class="p">(</span><span class="n">MIMEText</span><span class="p">(</span><span class="n">body</span><span class="p">,</span> <span class="s1">&#39;html&#39;</span><span class="p">))</span>
+
+            <span class="c1"># Send email using aiosmtplib for more control</span>
+            <span class="k">async</span> <span class="k">with</span> <span class="n">aiosmtplib</span><span class="o">.</span><span class="n">SMTP</span><span class="p">(</span>
+                <span class="n">hostname</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">conf</span><span class="o">.</span><span class="n">MAIL_SERVER</span><span class="p">,</span> 
+                <span class="n">port</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">conf</span><span class="o">.</span><span class="n">MAIL_PORT</span><span class="p">,</span>
+                <span class="n">use_tls</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">conf</span><span class="o">.</span><span class="n">MAIL_SSL_TLS</span>
+            <span class="p">)</span> <span class="k">as</span> <span class="n">smtp</span><span class="p">:</span>
+                <span class="c1"># Ensure username and password are strings</span>
+                <span class="n">username_value</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">conf</span><span class="o">.</span><span class="n">MAIL_USERNAME</span><span class="o">.</span><span class="n">get_secret_value</span><span class="p">()</span> 
+                    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">conf</span><span class="o">.</span><span class="n">MAIL_USERNAME</span><span class="p">,</span> <span class="s1">&#39;get_secret_value&#39;</span><span class="p">)</span> 
+                    <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">conf</span><span class="o">.</span><span class="n">MAIL_USERNAME</span>
+                <span class="p">)</span>
+                <span class="n">password_value</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">conf</span><span class="o">.</span><span class="n">MAIL_PASSWORD</span><span class="o">.</span><span class="n">get_secret_value</span><span class="p">()</span> 
+                    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">conf</span><span class="o">.</span><span class="n">MAIL_PASSWORD</span><span class="p">,</span> <span class="s1">&#39;get_secret_value&#39;</span><span class="p">)</span> 
+                    <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">conf</span><span class="o">.</span><span class="n">MAIL_PASSWORD</span>
+                <span class="p">)</span>
+                
+                <span class="k">await</span> <span class="n">smtp</span><span class="o">.</span><span class="n">login</span><span class="p">(</span><span class="n">username_value</span><span class="p">,</span> <span class="n">password_value</span><span class="p">)</span>
+                <span class="k">await</span> <span class="n">smtp</span><span class="o">.</span><span class="n">send_message</span><span class="p">(</span><span class="n">message</span><span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Email sent successfully to </span><span class="si">{</span><span class="n">recipient</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">True</span>
+
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Email sending failed: </span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span>
+                <span class="n">status_code</span><span class="o">=</span><span class="mi">500</span><span class="p">,</span> 
+                <span class="n">detail</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Failed to send email: </span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="EmailService.send_verification_email">
+<a class="viewcode-back" href="../../../index.html#src.services.email.EmailService.send_verification_email">[docs]</a>
+    <span class="k">async</span> <span class="k">def</span> <span class="nf">send_verification_email</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> 
+        <span class="n">email</span><span class="p">:</span> <span class="n">EmailStr</span><span class="p">,</span> 
+        <span class="n">username</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> 
+        <span class="n">verification_token</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Send email verification link</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">verification_link</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;https://localhost:8000/api/auth/verify-email?token=</span><span class="si">{</span><span class="n">verification_token</span><span class="si">}</span><span class="s2">&quot;</span>
+        
+        <span class="k">return</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">send_email</span><span class="p">(</span>
+            <span class="n">recipient</span><span class="o">=</span><span class="n">email</span><span class="p">,</span>
+            <span class="n">username</span><span class="o">=</span><span class="n">username</span><span class="p">,</span>
+            <span class="n">subject</span><span class="o">=</span><span class="s2">&quot;Verify Your Email&quot;</span><span class="p">,</span>
+            <span class="n">template_name</span><span class="o">=</span><span class="s2">&quot;email_template.html&quot;</span><span class="p">,</span>
+            <span class="n">template_body</span><span class="o">=</span><span class="p">{</span>
+                <span class="s2">&quot;username&quot;</span><span class="p">:</span> <span class="n">username</span><span class="p">,</span>
+                <span class="s2">&quot;verification_link&quot;</span><span class="p">:</span> <span class="n">verification_link</span>
+            <span class="p">}</span>
+        <span class="p">)</span></div>
+</div>
+
+    
+<span class="n">email_service</span> <span class="o">=</span> <span class="n">EmailService</span><span class="p">()</span>
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">py-web-14 1.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">src.services.email</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2024, juliya.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.1.3.
+    </div>
+  </body>
+</html>
