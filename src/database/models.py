@@ -6,6 +6,19 @@ from sqlalchemy.sql import func
 Base = declarative_base()
 
 class User(Base):
+    """
+    Represents a user in the system.
+
+    Attributes:
+        id (int): The primary key.
+        email (str): The user's email.
+        password (str): The hashed password.
+        username (str): The username.
+        created_at (datetime): The account creation timestamp.
+        confirmed (bool): Whether the user's email is confirmed.
+        avatar_url (str): The URL of the user's avatar.
+        refresh_token (str): The user's refresh token for authentication.
+    """
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -20,6 +33,18 @@ class User(Base):
 
 
 class Contact(Base):
+    """Represents a contact belonging to a user.
+
+    Attributes:
+        id (int): The primary key.
+        first_name (str): The contact's first name.
+        last_name (str): The contact's last name.
+        email (str): The contact's email.
+        phone (str): The contact's phone number.
+        birthday (datetime): The contact's date of birth.
+        additional_info (str): Optional additional information.
+        owner_id (int): The ID of the user who owns the contact.
+    """
     __tablename__ = "contacts"
 
     id = Column(Integer, primary_key=True, index=True)

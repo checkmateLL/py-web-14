@@ -13,6 +13,13 @@ logger = logging.getLogger(__name__)
 async def get_user_by_email(email: str, db: AsyncSession) -> User | None:
     """
     Retrieve a user by their email address.
+
+    Args:
+        email (str): The email of the user.
+        db (AsyncSession): The database session for querying.
+
+    Returns:
+        User | None: The user object if found, otherwise None.
     """
     try:
         result = await db.execute(select(User).filter(User.email == email))
@@ -23,7 +30,17 @@ async def get_user_by_email(email: str, db: AsyncSession) -> User | None:
 
 async def create_user(user: UserCreate, db: AsyncSession) -> User:
     """
-    Create a new user with.
+    Create a new user.
+
+    Args:
+        user (UserCreate): The data for creating a new user.
+        db (AsyncSession): The database session for querying.
+
+    Returns:
+        User: The newly created user object.
+
+    Raises:
+        ValueError: If a user with the email already exists.
     """
     try:
         # Check if user already exists
@@ -73,7 +90,18 @@ async def update_user(
     db: AsyncSession
 ) -> User | None:
     """
-    Update user details with comprehensive error handling.
+    Update user details.
+
+     Args:
+        user_id (int): The ID of the user to update.
+        user_update (UserUpdate): The fields to update.
+        db (AsyncSession): The database session for querying.
+
+    Returns:
+        User | None: The updated user object, or None if user not found.
+
+    Raises:
+        ValueError: If the update fails due to an error.
     """
     try:
         user = await get_user_by_id(user_id, db)
@@ -100,6 +128,13 @@ async def update_user(
 async def confirm_email(email: str, db: AsyncSession) -> bool:
     """
     Confirm user's email address.
+
+    Args:
+        email (str): The user's email to confirm.
+        db (AsyncSession): The database session for querying.
+
+    Returns:
+        bool: True if confirmation succeeded, otherwise False.
     """
     try:
         user = await get_user_by_email(email, db)

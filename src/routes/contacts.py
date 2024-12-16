@@ -12,6 +12,18 @@ router = APIRouter()
 async def create_contact(
     body: ContactCreate, db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)
 ):
+    """
+    Create a new contact.
+
+    Args:
+        body (ContactCreate): The contact details.
+        db (AsyncSession): The database session.
+        current_user (User): The currently authenticated user.
+
+    Returns:
+        ContactResponse: The created contact details.
+    """
+
     new_contact = await repository_contacts.create_contact(body, current_user, db)
     return new_contact
 
@@ -19,6 +31,16 @@ async def create_contact(
 async def get_contacts(
     db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)
 ):
+    """
+    Retrieve all contacts for the authenticated user.
+
+    Args:
+        db (AsyncSession): The database session.
+        current_user (User): The authenticated user.
+
+    Returns:
+        list[ContactResponse]: A list of contacts.
+    """
     contacts = await repository_contacts.get_contacts(current_user, db)
     return contacts
 

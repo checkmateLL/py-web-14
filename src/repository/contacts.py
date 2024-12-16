@@ -18,6 +18,14 @@ async def create_contact(
 ) -> Contact:
     """
     Create a new contact with error handling.
+
+    Args:
+        body (ContactCreate): The data required to create a new contact.
+        current_user (User): The currently authenticated user.
+        db (AsyncSession): The database session.
+
+    Returns:
+        Contact: The created contact object.
     """
     try:
         new_contact = Contact(
@@ -53,6 +61,16 @@ async def get_contacts(
 ) -> list[Contact]:
     """
     Retrieve contact.
+
+    Args:
+        current_user (User): The currently authenticated user.
+        db (AsyncSession): The database session for querying.
+        name (str, optional): A name filter for contacts.
+        email (str, optional): An email filter for contacts.
+        upcoming_birthdays (bool, optional): Filter for upcoming birthdays within 7 days.
+
+    Returns:
+        list[Contact]: A list of contacts matching the provided filters.
     """
     try:
         query = select(Contact).filter(Contact.owner_id == current_user.id)

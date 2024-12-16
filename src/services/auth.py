@@ -30,11 +30,28 @@ class AuthService:
         )
 
     def get_password_hash(self, password: str) -> str:
-        """Hashes a plain text password."""
+        """
+        Hashes a plain text password.
+        
+        Args:
+            password (str): The plain text password.
+
+        Returns:
+            str: The hashed password.
+        """
         return self.pwd_context.hash(password)
 
     def verify_password(self, plain_password: str, hashed_password: str) -> bool:
-        """Verifies a plain password against a hashed password."""
+        """
+        Verifies a plain password against a hashed password.
+        
+        Args:
+            plain_password (str): The plain text password.
+            hashed_password (str): The hashed password.
+
+        Returns:
+            bool: True if passwords match, otherwise False.
+        """
         return self.pwd_context.verify(plain_password, hashed_password)
 
     async def create_access_token(
@@ -42,7 +59,16 @@ class AuthService:
         data: Dict[str, str], 
         expires_delta: Optional[timedelta] = None
     ) -> str:
-        """Creates a JWT access token with optional expiration."""
+        """
+        Creates a JWT access token with optional expiration.
+        
+        Args:
+            data (Dict[str, str]): Data to include in the token payload.
+            expires_delta (Optional[timedelta]): Token expiration time.
+
+        Returns:
+            str: The generated JWT token.
+        """
         to_encode = data.copy()
         
         # Generate a unique token ID to prevent token reuse
@@ -69,7 +95,15 @@ class AuthService:
         return encoded_jwt
 
     async def create_email_verification_token(self, email: str) -> str:
-        """Create a time-limited email verification token."""
+        """
+        Create a time-limited email verification token.
+        
+        Args:
+            email (str): The user's email to verify.
+
+        Returns:
+            str: The generated email verification token.
+        """
         data = {"sub": email, "type": "email_verification"}
         expires_delta = timedelta(hours=1)  # Token valid for 1 hour
         
@@ -80,7 +114,15 @@ class AuthService:
         )
 
     async def verify_token(self, token: str) -> Optional[Dict]:
-        """Verify and decode a token."""
+        """
+        Verify and decode a token.
+        
+        Args:
+            token (str): The JWT token.
+
+        Returns:
+            Optional[Dict]: The payload data if verification is successful, otherwise None.
+        """
         try:
             # Decode the token
             payload = jwt.decode(
